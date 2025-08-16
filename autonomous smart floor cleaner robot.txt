@@ -1,0 +1,129 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <SoftwareSerial.h>
+#include <NewPing.h>
+
+// Define pins
+const int trigPin = D7;
+const int echoPin = D8;
+const int motorIN1 = D3;
+const int motorIN2 = D4;
+const int motorIN3 = D9;
+const int motorIN4 = D10;
+const int pumpPin = D11;
+const int switchPin = D12;
+const int relayPin = D13;
+
+// Define objects
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+SoftwareSerial btSerial(D5, D6);
+NewPing sonar(trigPin, echoPin);
+
+void setup() {
+  Serial.begin(9600);
+  btSerial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  pinMode(motorIN1, OUTPUT);
+  pinMode(motorIN2, OUTPUT);
+  pinMode(motorIN3, OUTPUT);
+  pinMode(motorIN4, OUTPUT);
+  pinMode(pumpPin, OUTPUT);
+  pinMode(switchPin, INPUT);
+  pinMode(relayPin, OUTPUT);
+}
+
+void loop() {
+  // Read ultrasonic sensor
+  int distance = sonar.ping_cm();
+
+  // Display distance on LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Distance: ");
+  lcd.print(distance);
+  lcd.print(" cm");
+
+  // Check sliding switch
+  if (digitalRead(switchPin) == HIGH) {
+    // Manual mode
+    btSerial.listen();
+    if (btSerial.available()) {
+      char command = btSerial.read();
+      switch (command) {
+        case 'F':
+          forward();
+          break;
+        case 'B':
+          backward();
+          break;
+        case 'L':
+          left();
+          break;
+        case 'R':
+          right();
+          break;
+        case 'S':
+          stop();
+          break;
+        case 'P':
+          pumpOn();
+          break;
+        case 'p':
+          pumpOff();
+          break;
+      }
+    }
+  } else {
+    // Autonomous mode
+    if (distance <= 20) {
+      // Obstacle detected, turn around
+      right();
+      delay(500);
+      forward();
+    } else {
+      // Move forward
+      forward();
+    }
+  }
+}
+
+void forward() {
+  digitalWrite(motorIN1, HIGH);
+  digitalWrite(motorIN2, LOW);
+  digitalWrite(motorIN3, HIGH);
+  digitalWrite(motorIN4, LOW);
+}
+
+void backward() {
+  digitalWrite(motorIN1, LOW);
+  digitalWrite(motorIN2, HIGH);
+  digitalWrite(motorIN3, LOW);
+  digitalWrite(motorIN4, HIGH);
+}
+
+void left() {
+  digitalWrite(motorIN1, HIGH);
+  digitalWrite(motorIN2, LOW);
+  digitalWrite(motorIN3, LOW);
+  digitalWrite(motorIN4, HIGH);
+}
+
+void right() {
+  digitalWrite(motorIN1, LOW);
+  digitalWrite(motorIN2, HIGH);
+  digitalWrite(motorIN3, HIGH);
+  digitalWrite(motorIN4, LOW);
+}
+
+void stop() {
+  digitalWrite(motorIN1, LOW);
+  digitalWrite(motorIN2, LOW);
+  digitalWrite(motorIN3, LOW);
+  digitalWrite(motorIN4, LOW);
+}
+void pumpOn() {
+  digitalWrite(pumpPin, HIGH);
+}
+void pumpOff() {
+  digitalWrite(pumpPin, LOW);
+}
